@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Lead Automation System</title>
+
+    <style>
+
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+        }
+
+        body{
+            font-family:'Segoe UI',sans-serif;
+            background:#f5f7fa;
+            min-height:100vh;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            padding:20px;
+        }
+
+        .form-container{
+            width:100%;
+            max-width:900px;
+            background:#fff;
+            padding:50px;
+            border-radius:30px;
+            box-shadow:0 15px 40px rgba(0,0,0,.08);
+        }
+
+        h2{
+            text-align:center;
+            color:#111827;
+            margin-bottom:40px;
+            font-size:32px;
+        }
+
+        .row{
+            display:flex;
+            gap:25px;
+            margin-bottom:25px;
+        }
+
+        .form-group{
+            flex:1;
+        }
+
+        label{
+            display:block;
+            margin-bottom:10px;
+            font-size:17px;
+            font-weight:600;
+            color:#111827;
+        }
+
+        input,
+        textarea{
+            width:100%;
+            padding:16px;
+            border:1px solid #dbe1ea;
+            border-radius:12px;
+            font-size:16px;
+            outline:none;
+            transition:.3s;
+        }
+
+        input:focus,
+        textarea:focus{
+            border-color:#2563eb;
+            box-shadow:0 0 0 4px rgba(37,99,235,.15);
+        }
+
+        textarea{
+            min-height:160px;
+            resize:vertical;
+        }
+
+        button{
+            width:100%;
+            padding:18px;
+            border:none;
+            border-radius:12px;
+            font-size:18px;
+            font-weight:600;
+            color:white;
+            cursor:pointer;
+
+            background:linear-gradient(
+                    90deg,
+                    #2563eb,
+                    #0ea5e9
+            );
+
+            transition:.3s;
+        }
+
+        button:hover{
+            transform:translateY(-2px);
+        }
+
+        #responseMessage{
+            margin-top:20px;
+            text-align:center;
+            font-weight:bold;
+            display:none;
+        }
+
+        @media(max-width:768px){
+
+            .form-container{
+                padding:25px;
+            }
+
+            .row{
+                flex-direction:column;
+                gap:20px;
+                margin-bottom:20px;
+            }
+
+            h2{
+                font-size:26px;
+            }
+
+        }
+
+    </style>
+</head>
+
+<body>
+
+<div class="form-container">
+
+    <h2>CRM Lead Capture</h2>
+
+    <form id="leadForm">
+
+        <div class="row">
+
+            <div class="form-group">
+                <label>Full Name</label>
+                <input
+                        type="text"
+                        id="name"
+                        placeholder="John Doe"
+                        required>
+            </div>
+
+            <div class="form-group">
+                <label>Email Address</label>
+                <input
+                        type="email"
+                        id="email"
+                        placeholder="john@company.com"
+                        required>
+            </div>
+
+        </div>
+
+        <div class="row">
+
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input
+                        type="text"
+                        id="phone"
+                        placeholder="+91 98765 43210"
+                        required>
+            </div>
+
+            <div class="form-group">
+                <label>Company / Website</label>
+                <input
+                        type="text"
+                        id="company"
+                        placeholder="yourwebsite.com">
+            </div>
+
+        </div>
+
+        <div class="form-group" style="margin-bottom:25px;">
+            <label>How can we help you?</label>
+
+            <textarea
+                    id="message"
+                    placeholder="Tell us about your current workflows or what you want to automate..."></textarea>
+        </div>
+
+        <button type="submit" id="submitBtn">
+            Request Strategy Call
+        </button>
+
+    </form>
+
+    <div id="responseMessage"></div>
+
+</div>
+
+<script>
+
+    document.getElementById('leadForm')
+        .addEventListener('submit', async function(e){
+
+            e.preventDefault();
+
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const company = document.getElementById('company').value;
+            const message = document.getElementById('message').value;
+
+            const msgDiv =
+                document.getElementById('responseMessage');
+
+            const btn =
+                document.getElementById('submitBtn');
+
+            btn.disabled = true;
+            btn.innerText = "Processing...";
+
+            msgDiv.style.display = 'block';
+            msgDiv.style.color = '#2563eb';
+            msgDiv.innerText = "Submitting lead...";
+
+            try{
+
+                const response = await fetch(
+                    '/api/v1/webhook/new-lead',
+                    {
+                        method:'POST',
+                        headers:{
+                            'Content-Type':'application/json'
+                        },
+                        body:JSON.stringify({
+                            name,
+                            email,
+                            phone,
+                            company,
+                            message
+                        })
+                    }
+                );
+
+                if(response.status === 201){
+
+                    msgDiv.style.color = '#16a34a';
+                    msgDiv.innerText =
+                        '🎉 Success! Lead captured and Automation triggered.';
+
+                    document.getElementById('leadForm').reset();
+
+                }else{
+
+                    msgDiv.style.color = '#dc2626';
+                    msgDiv.innerText =
+                        '❌ Something went wrong on the server.';
+                }
+
+            }catch(error){
+
+                msgDiv.style.color = '#dc2626';
+                msgDiv.innerText =
+                    '❌ Cannot connect to backend server.';
+            }
+
+            btn.disabled = false;
+            btn.innerText = "Request Strategy Call";
+
+        });
+
+</script>
+
+</body>
+</html>

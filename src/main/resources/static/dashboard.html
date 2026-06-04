@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Admin Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-gray-50 font-sans">
+
+<div id="loginOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex justify-center items-center z-50 hidden">
+    <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-gray-100">
+        <div class="text-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-950">🔐 CRM Secure Login</h2>
+            <p class="text-sm text-gray-400 mt-1">Enter credentials to unlock admin panel</p>
+        </div>
+
+        <div id="loginErrorBox" class="bg-red-50 text-red-600 p-3 rounded-lg text-xs font-semibold mb-4 hidden text-center"></div>
+
+        <form id="inlineLoginForm" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Username</label>
+                <input type="text" id="authUsername" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-blue-500" placeholder="admin_user" required>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Password</label>
+                <input type="password" id="authPassword" class="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-blue-500" placeholder="••••••••" required>
+            </div>
+            <button type="submit" id="loginSubmitBtn" class="w-full bg-blue-600 text-white font-semibold py-2.5 rounded-lg shadow hover:bg-blue-700 transition cursor-pointer text-sm">
+                Unlock Dashboard
+            </button>
+        </form>
+    </div>
+</div>
+
+<div id="dashboardContent" class="max-w-7xl mx-auto p-6 hidden"> <div class="flex justify-between items-center mb-8 border-b pb-4">
+    <h1 class="text-3xl font-bold text-gray-800">📊 CRM Admin Dashboard</h1>
+    <div class="flex gap-4">
+        <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded shadow hover:bg-red-600 transition cursor-pointer text-sm font-semibold">
+            Logout
+        </button>
+        <a href="index.html" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition text-sm font-semibold">
+            + Add New Lead
+        </a>
+    </div>
+</div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-blue-500">
+            <p class="text-sm font-medium text-gray-400 uppercase tracking-wider">Total Leads</p>
+            <p id="totalLeadsCount" class="text-3xl font-bold text-gray-800 mt-1">0</p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-yellow-500">
+            <p class="text-sm font-medium text-gray-400 uppercase tracking-wider">New Leads</p>
+            <p id="newLeadsCount" class="text-3xl font-bold text-gray-800 mt-1">0</p>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-green-500">
+            <p class="text-sm font-medium text-gray-400 uppercase tracking-wider">Contacted</p>
+            <p id="contactedLeadsCount" class="text-3xl font-bold text-gray-800 mt-1">0</p>
+        </div>
+    </div>
+
+    <div class="mb-6 flex gap-4">
+        <input type="text" id="searchBar" onkeyup="filterLeads()" placeholder="🔍 Search leads by name, email, or phone..."
+               class="w-full bg-white border border-gray-200 rounded-lg px-4 py-3 shadow-sm focus:outline-none focus:border-blue-500 text-sm text-gray-700">
+    </div>
+
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full text-left border-collapse">
+            <thead class="bg-gray-100 text-gray-700 uppercase text-sm border-b">
+            <tr>
+                <th class="p-4">ID</th>
+                <th class="p-4">Lead Info</th>
+                <th class="p-4">Company / Website</th> <th class="p-4">Requirement Message</th>  <th class="p-4">Status</th>
+                <th class="p-4">Interaction Notes (Remarks)</th>
+                <th class="p-4">Actions</th>
+            </tr>
+            </thead>
+            <tbody id="leadsTableBody" class="divide-y divide-gray-200 text-gray-600">
+            <tr>
+                <td colspan="7" class="p-4 text-center text-gray-400">Loading dashboard automation engine...</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    localStorage.removeItem("crm_jwt_token");
+
+    let cachedLeads = [];
+    let token = sessionStorage.getItem("crm_jwt_token");
+    let autoRefreshInterval = null;
+
+    function checkCurrentSession() {
+        const overlay = document.getElementById("loginOverlay");
+        const content = document.getElementById("dashboardContent");
+
+        if (!token) {
+            content.classList.add("hidden");
+            overlay.classList.remove("hidden");
+            stopRealTimeStream();
+        } else {
+            overlay.classList.add("hidden");
+            content.classList.remove("hidden");
+
+            fetchLeads().then(() => {
+                startRealTimeStream();
+            });
+        }
+    }
+
+    // Inline Login Logic
+    document.getElementById("inlineLoginForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const errorBox = document.getElementById("loginErrorBox");
+        const submitBtn = document.getElementById("loginSubmitBtn");
+
+        errorBox.classList.add("hidden");
+        submitBtn.innerText = "Authenticating...";
+        submitBtn.disabled = true;
+
+        const loginPayload = {
+            username: document.getElementById("authUsername").value,
+            password: document.getElementById("authPassword").value
+        };
+
+        try {
+            const response = await fetch("/api/v1/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(loginPayload)
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.token) {
+                sessionStorage.setItem("crm_jwt_token", data.token);
+                sessionStorage.setItem("crm_user_role", data.role);
+                token = data.token;
+
+                document.getElementById("loginOverlay").classList.add("hidden");
+                document.getElementById("dashboardContent").classList.remove("hidden");
+
+                await fetchLeads();
+                startRealTimeStream();
+            } else {
+                errorBox.innerText = data.error || "Invalid username or password credentials.";
+                errorBox.classList.remove("hidden");
+            }
+        } catch (error) {
+            console.error("Auth server failure:", error);
+            errorBox.innerText = "Connection lost. Ensure Spring Boot backend is active on port 8080.";
+            errorBox.classList.remove("hidden");
+        } finally {
+            submitBtn.innerText = "Unlock Dashboard";
+            submitBtn.disabled = false;
+        }
+    });
+
+    // Fetch Leads Data
+    async function fetchLeads() {
+        try {
+            const response = await fetch('/api/v1/webhook/all-leads', {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            if (response.status === 401 || response.status === 403) {
+                handleSessionExpiry();
+                return;
+            }
+
+            if (!response.ok) throw new Error("Failed to fetch data");
+
+            const newLeadsData = await response.json();
+
+            if (JSON.stringify(cachedLeads) !== JSON.stringify(newLeadsData)) {
+                cachedLeads = newLeadsData;
+
+                document.getElementById('totalLeadsCount').innerText = cachedLeads.length;
+                document.getElementById('newLeadsCount').innerText = cachedLeads.filter(l => !l.status || l.status === 'NEW').length;
+                document.getElementById('contactedLeadsCount').innerText = cachedLeads.filter(l => l.status === 'CONTACTED').length;
+
+                renderTable(cachedLeads);
+                console.log("📡 [AUTO SYNC] Live data stream pool synchronized smoothly from Redis cache!");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            if (cachedLeads.length === 0) {
+                document.getElementById('leadsTableBody').innerHTML =
+                    `<tr><td colspan="7" class="p-4 text-center text-red-500 font-bold">⚠️ Error connecting to server!</td></tr>`;
+            }
+        }
+    }
+
+    function startRealTimeStream() {
+        stopRealTimeStream();
+        console.log("⚙️ Background live synchronizer activated (Intercom polling rate: 5s)...");
+        autoRefreshInterval = setInterval(() => {
+            fetchLeads();
+        }, 5000);
+    }
+
+    function stopRealTimeStream() {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+        }
+    }
+
+    // 🚀 UPDATED RENDER FUNCTION WITH NEW COLUMNS
+    function renderTable(leadsList) {
+        const tableBody = document.getElementById('leadsTableBody');
+        if (leadsList.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400">No matching leads found.</td></tr>`;
+            return;
+        }
+
+        tableBody.innerHTML = '';
+        leadsList.forEach(lead => {
+            const isContacted = lead.status === 'CONTACTED';
+            const badgeClass = isContacted ? 'bg-green-100 text-green-800 border-green-200' : 'bg-yellow-100 text-yellow-800 border-yellow-200';
+            const statusText = lead.status ? lead.status : 'NEW';
+            const currentNote = lead.notes ? lead.notes : '';
+
+            // Fallback content management if properties are null
+            const companyText = lead.company ? lead.company : '<span class="text-gray-400 italic text-xs">N/A</span>';
+            const messageText = lead.message ? lead.message : '<span class="text-gray-400 italic text-xs">No Message</span>';
+
+            tableBody.innerHTML += `
+                    <tr class="hover:bg-gray-50 transition border-b border-gray-200">
+                        <td class="p-4 font-semibold text-gray-800">#${lead.id}</td>
+                        <td class="p-4">
+                            <div class="font-medium text-gray-900">${lead.name}</div>
+                            <div class="text-xs text-gray-400">${lead.email} | ${lead.phone || 'N/A'}</div>
+                        </td>
+
+                        <td class="p-4 text-sm font-medium text-gray-700 max-w-[160px] truncate" title="${companyText}">
+                            ${companyText}
+                        </td>
+
+                        <td class="p-4 text-xs text-gray-600 max-w-[240px] whitespace-normal break-words">
+                            ${messageText}
+                        </td>
+
+                        <td class="p-4">
+                            <span class="px-2 py-1 text-xs font-bold rounded border ${badgeClass} uppercase">
+                                ${statusText}
+                            </span>
+                        </td>
+                        <td class="p-4">
+                            <div class="flex gap-2">
+                                <input type="text" id="note-${lead.id}" value="${currentNote}" placeholder="Type discussion remarks..."
+                                    class="border border-gray-200 rounded px-2 py-1 text-xs w-full focus:outline-none focus:border-blue-500">
+                                <button onclick="saveNote(${lead.id})" class="bg-gray-800 text-white text-[10px] px-2 py-1 rounded hover:bg-gray-700 font-semibold cursor-pointer">
+                                    Save
+                                </button>
+                            </div>
+                        </td>
+                        <td class="p-4">
+                            ${!isContacted ? `
+                                <button onclick="updateStatus(${lead.id}, 'CONTACTED')" class="bg-blue-50 text-blue-600 border border-blue-200 px-3 py-1 rounded text-xs font-semibold hover:bg-blue-600 hover:text-white transition cursor-pointer">
+                                    Mark Contacted
+                                </button>
+                            ` : `
+                                <span class="text-xs text-gray-400 font-medium">✔️ Logged</span>
+                            `}
+                        </td>
+                    </tr>
+                `;
+        });
+    }
+
+    function filterLeads() {
+        const query = document.getElementById('searchBar').value.toLowerCase();
+
+        const filtered = cachedLeads.filter(lead => {
+            const nameMatch = lead.name ? lead.name.toLowerCase().includes(query) : false;
+            const emailMatch = lead.email ? lead.email.toLowerCase().includes(query) : false;
+            const phoneMatch = lead.phone ? lead.phone.toLowerCase().includes(query) : false;
+            const companyMatch = lead.company ? lead.company.toLowerCase().includes(query) : false; // 🚀 Added search capability for company fields too
+            return nameMatch || emailMatch || phoneMatch || companyMatch;
+        });
+
+        renderTable(filtered);
+    }
+
+    async function updateStatus(id, newStatus) {
+        try {
+            const response = await fetch(`/api/v1/webhook/update-status/${id}?status=${newStatus}`, {
+                method: 'PUT',
+                headers: { "Authorization": "Bearer " + token }
+            });
+
+            if (response.status === 401 || response.status === 403) {
+                handleSessionExpiry();
+                return;
+            }
+
+            if (response.ok) fetchLeads();
+        } catch (error) { console.error("Error updating status:", error); }
+    }
+
+    async function saveNote(id) {
+        const noteValue = document.getElementById(`note-${id}`).value;
+        try {
+            const response = await fetch(`/api/v1/webhook/update-notes/${id}?notes=${encodeURIComponent(noteValue)}`, {
+                method: 'PUT',
+                headers: { "Authorization": "Bearer " + token }
+            });
+
+            if (response.status === 401 || response.status === 403) {
+                handleSessionExpiry();
+                return;
+            }
+
+            if (response.ok) {
+                alert("📝 Note successfully synced to database!");
+                fetchLeads();
+            }
+        } catch (error) { console.error("Error updating notes:", error); }
+    }
+
+    function logout() {
+        stopRealTimeStream();
+        sessionStorage.removeItem("crm_jwt_token");
+        sessionStorage.removeItem("crm_user_role");
+        token = null;
+        document.getElementById("inlineLoginForm").reset();
+        checkCurrentSession();
+    }
+
+    function handleSessionExpiry() {
+        alert("Security Session expired. Please unlock the system again.");
+        logout();
+    }
+
+    checkCurrentSession();
+</script>
+</body>
+</html>
