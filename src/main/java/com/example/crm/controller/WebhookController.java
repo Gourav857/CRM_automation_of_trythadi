@@ -9,10 +9,7 @@ import org.springframework.cache.annotation.Cacheable;  // 🚀 REDIS IMPORT
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
 
 @RestController
@@ -25,9 +22,6 @@ public class WebhookController {
 
     @Autowired
     private AutomationService automationService;
-
-    private final RestTemplate restTemplate = new RestTemplate();
-  
 
     // 🚀 REDIS FIX: Nayi lead aane par purana cache pool clear ho jaye
     @PostMapping("/new-lead")
@@ -42,34 +36,8 @@ public class WebhookController {
                     incomingLead.getMessage()
             );
 
-            // 🤖 AI INTEGRATION START
-            try {
-                System.out.println("🤖 Sending lead data to AI Manager for screening...");
-
-                Map<String, Object> aiRequest = new HashMap<>();
-                aiRequest.put("sender", incomingLead.getEmail());
-                aiRequest.put("subject", "New CRM Lead Inquiry from " + incomingLead.getName());
-                aiRequest.put("body", incomingLead.getMessage());
-
-                Map<?, ?> aiResponse = restTemplate.postForObject(AI_MANAGER_URL, aiRequest, Map.class);
-
-                if (aiResponse != null) {
-                    Boolean isSpam = (Boolean) aiResponse.get("spam");
-                    String category = (String) aiResponse.get("category");
-
-                    System.out.println("🤖 AI Screening Result -> Category: " + category + " | IsSpam: " + isSpam);
-
-                    if (Boolean.TRUE.equals(isSpam)) {
-                        lead.setStatus("SPAM");
-                    } else {
-                        lead.setStatus("AI_PROCESSED");
-                    }
-                }
-            } catch (Exception aiException) {
-                System.out.println("⚠️ AI Manager down or error, bypassing screening: " + aiException.getMessage());
-                lead.setStatus("PENDING");
-            }
-            // 🤖 AI INTEGRATION END
+            // ✅ AI SCREENING COMPLETELY REMOVED & DEFAULT STATUS SET TO PENDING
+            lead.setStatus("PENDING");
 
             Lead savedLead = leadRepository.save(lead);
 
@@ -82,7 +50,7 @@ public class WebhookController {
             automationService.runAutomationWorkflow(savedLead);
 
             return new ResponseEntity<>(
-                    "{\"status\": \"Success\", \"message\": \"Lead processing in background with AI screening\"}",
+                    "{\"status\": \"Success\", \"message\": \"Lead processing in background with stable data ingestion\"}",
                     HttpStatus.CREATED
             );
 
