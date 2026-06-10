@@ -17,7 +17,7 @@ public class AutomationService {
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
     
     // 🚀 BREVO API KEY BINDING
-    private final String BREVO_API_KEY = "xsmtpsib-d680bd98cf9535c1812263325191195bf5ae8528113b83c66e6db08d8d0d5425-Rg9F6AEAIKI3vEQC"; 
+    private final String BREVO_API_KEY = "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"; 
 
     // 🚀 Completely Non-Blocking Background Async Execution
     @Async("crmAsyncExecutor")
