@@ -1,11 +1,11 @@
 package com.example.crm.service;
 
 import com.example.crm.model.Lead;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.scheduling.annotation.Async; // 🚀 Added for asynchronous execution
 import org.springframework.stereotype.Service;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.*;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -13,74 +13,21 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class AutomationService {
 
-    @Autowired
-    private JavaMailSender mailSender; // Spring Boot ka built-in email sender
-
+    private final RestTemplate restTemplate = new RestTemplate();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+    
+    // 🚀 BREVO API KEY BINDING
+    private final String BREVO_API_KEY = "xsmtpsib-d680bd98cf9535c1812263325191195bf5ae8528113b83c66e6db08d8d0d5425-Rg9F6AEAIKI3vEQC"; 
 
-    // 🚀 Industrial Grade Optimization: Whole workflow is now completely non-blocking
+    // 🚀 Completely Non-Blocking Background Async Execution
     @Async("crmAsyncExecutor")
     public void runAutomationWorkflow(Lead lead) {
         System.out.println("\n[⚡ ASYNC ACTIVATED] Workflow triggered on background thread: "
                 + Thread.currentThread().getName() + " for client: " + lead.getName());
 
-        // 1. Welcome Email (Executes immediately on background thread)
-        sendRealEmail(
-                lead.getEmail(),
-                "Welcome to Our Premium Service!",
-                "Hi " + lead.getName() + ",\n\nThank you for reaching out to us. Our team will contact you shortly on " + lead.getPhone() + ".\n\nBest Regards,\nCRM Automation System"
-        );
-
-        // 2. Thik 30 Seconds baad automatic Follow-up (Handled inside async execution stack)
-        scheduler.schedule(() -> {
-            try {
-                if (lead.getStatus() == null || "NEW".equals(lead.getStatus())) {
-                    System.out.println("\n⏰ [DELAYED ACTION] Triggering automatic follow-up on thread: "
-                            + Thread.currentThread().getName() + " for: " + lead.getName());
-                    sendRealEmail(
-                            lead.getEmail(),
-                            "Exclusive 20% Discount Just For You!",
-                            "Hi " + lead.getName() + ",\n\nWe noticed you haven't responded yet. Here is an exclusive 20% discount coupon code: CRM20. Grab it now!\n\nCheers!"
-                    );
-                }
-            } catch (Exception e) {
-                System.out.println("❌ [SCHEDULER ERROR] Background pipeline execution failed: " + e.getMessage());
-            }
-        }, 30, TimeUnit.SECONDS);
-    }
-
-    
-    
-// Email bhejne ka common method
-   
-package com.example.crm.service;
-
-import com.example.crm.model.Lead;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.http.*;
-import java.util.*;
-
-@Service
-public class AutomationService {
-
-    private final RestTemplate restTemplate = new RestTemplate();
-    
-    // 🚀 BREVO API ROUTER KEY BINDING
-    private final String BREVO_API_KEY = "xsmtpsib-d680bd98cf9535c1812263325191195bf5ae8528113b83c66e6db08d8d0d5425-Rg9F6AEAIKI3vEQC"; 
-
-    public void runAutomationWorkflow(Lead lead) {
-        System.out.println("[⚡ ASYNC ACTIVATED] Workflow triggered on background thread for client: " + lead.getName());
-
-        String url = "https://api.brevo.com/v3/smtp/email";
-
-        // Headers Configuration
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("api-key", BREVO_API_KEY);
-
-        // Dynamic Professional Email Body
-        String emailContent = "Hi " + lead.getName() + ",\n\n" +
+        // 1️⃣ Welcome Email (Direct HTTP API Trigger)
+        String welcomeSubject = "Welcome to Our Premium Service!";
+        String welcomeContent = "Hi " + lead.getName() + ",\n\n" +
                 "Thank you for reaching out to TryThadi. Our team has received your inquiry regarding " +
                 (lead.getCompany() != null ? lead.getCompany() : "your business") + ".\n" +
                 "An automation strategist will contact you shortly on " + lead.getPhone() + ".\n\n" +
@@ -88,36 +35,64 @@ public class AutomationService {
                 "Gourav Yadav\n" +
                 "Founder, TryThadi.AI";
 
-        // Brevo Payload Structure (JSON Mapping)
+        sendEmailViaBrevo(lead.getEmail(), lead.getName(), welcomeSubject, welcomeContent);
+
+        // 2️⃣ Delayed Action: Automatic Follow-up after exactly 30 seconds
+        scheduler.schedule(() -> {
+            try {
+                System.out.println("\n⏰ [DELAYED ACTION] Triggering automatic follow-up on thread: "
+                        + Thread.currentThread().getName() + " for: " + lead.getName());
+                
+                String followUpSubject = "Exclusive 20% Discount Just For You!";
+                String followUpContent = "Hi " + lead.getName() + ",\n\n" +
+                        "We noticed you haven't responded yet. Here is an exclusive 20% discount coupon code: CRM20. Grab it now!\n\n" +
+                        "Cheers!\n" +
+                        "Team TryThadi.AI";
+
+                sendEmailViaBrevo(lead.getEmail(), lead.getName(), followUpSubject, followUpContent);
+                
+            } catch (Exception e) {
+                System.out.println("❌ [SCHEDULER ERROR] Background follow-up pipeline failed: " + e.getMessage());
+            }
+        }, 30, TimeUnit.SECONDS);
+    }
+
+    // 📧 Shared Private Helper: Sends Email using Brevo's Restricted Outbound HTTP API Router
+    private void sendEmailViaBrevo(String toEmail, String toName, String subject, String content) {
+        String url = "https://api.brevo.com/v3/smtp/email";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("api-key", BREVO_API_KEY);
+
         Map<String, Object> payload = new HashMap<>();
         
-        // Sender details
+        // Sender Details
         Map<String, String> sender = new HashMap<>();
         sender.put("name", "TryThadi AI");
         sender.put("email", "ydasratkumar@gmail.com"); 
         payload.put("sender", sender);
 
-        // Receiver details
-        Map<String, String> toUser = new HashMap<>();
-        toUser.put("email", lead.getEmail());
-        toUser.put("name", lead.getName());
-        payload.put("to", Collections.singletonList(toUser));
+        // Receiver Details
+        Map<String, String> receiver = new HashMap<>();
+        receiver.put("email", toEmail);
+        receiver.put("name", toName);
+        payload.put("to", Collections.singletonList(receiver));
 
-        payload.put("subject", "We Received Your Inquiry - TryThadi.AI");
-        payload.put("textContent", emailContent);
+        payload.put("subject", subject);
+        payload.put("textContent", content);
 
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
 
         try {
             ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
             if (response.getStatusCode() == HttpStatus.CREATED || response.getStatusCode() == HttpStatus.OK) {
-                System.out.println("📩 [HTTP API SUCCESS] Email successfully delivered via Brevo Router to: " + lead.getEmail());
+                System.out.println("📩 [HTTP API SUCCESS] Email successfully delivered to: " + toEmail + " | Subject: " + subject);
             } else {
-                System.out.println("❌ [BREVO ERROR] Code: " + response.getStatusCode());
+                System.out.println("❌ [BREVO ROUTER REJECTION] HTTP Status: " + response.getStatusCode());
             }
         } catch (Exception e) {
-            System.err.println("❌ [HTTP MAIL PIPELINE CRASH]: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("❌ [HTTP API CRASH]: Failed to transmit packet: " + e.getMessage());
         }
     }
 }
