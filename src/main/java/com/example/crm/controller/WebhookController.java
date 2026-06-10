@@ -27,7 +27,7 @@ public class WebhookController {
     private AutomationService automationService;
 
     private final RestTemplate restTemplate = new RestTemplate();
-    private final String AI_MANAGER_URL = "http://localhost:8081/api/v1/emails/process";
+  
 
     // 🚀 REDIS FIX: Nayi lead aane par purana cache pool clear ho jaye
     @PostMapping("/new-lead")
