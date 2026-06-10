@@ -49,8 +49,11 @@ public class AutomationService {
         }, 30, TimeUnit.SECONDS);
     }
 
-    // Email bhejne ka common method
-    package com.example.crm.service;
+    
+    
+// Email bhejne ka common method
+   
+package com.example.crm.service;
 
 import com.example.crm.model.Lead;
 import org.springframework.stereotype.Service;
@@ -63,7 +66,7 @@ public class AutomationService {
 
     private final RestTemplate restTemplate = new RestTemplate();
     
-    // ⚠️ APNI BREVO API KEY YAHAN PASTE KAREIN
+    // 🚀 BREVO API ROUTER KEY BINDING
     private final String BREVO_API_KEY = "xsmtpsib-d680bd98cf9535c1812263325191195bf5ae8528113b83c66e6db08d8d0d5425-Rg9F6AEAIKI3vEQC"; 
 
     public void runAutomationWorkflow(Lead lead) {
@@ -85,13 +88,13 @@ public class AutomationService {
                 "Gourav Yadav\n" +
                 "Founder, TryThadi.AI";
 
-        // Brevo Payload Structure (JSON)
+        // Brevo Payload Structure (JSON Mapping)
         Map<String, Object> payload = new HashMap<>();
         
         // Sender details
         Map<String, String> sender = new HashMap<>();
         sender.put("name", "TryThadi AI");
-        sender.put("email", "ydasratkumar@gmail.com"); // ⚠️ Aapka verified sender email
+        sender.put("email", "ydasratkumar@gmail.com"); 
         payload.put("sender", sender);
 
         // Receiver details
