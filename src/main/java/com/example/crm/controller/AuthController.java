@@ -13,7 +13,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/auth")
-@CrossOrigin(origins = "https://trythadi-6qt2.onrender.com", allowedHeaders = "*")
+@CrossOrigin(origins = "https://crm-automation-of-trythadi.onrender.com/api/leads", allowedHeaders = "*")
 public class AuthController {
 
     @Autowired
