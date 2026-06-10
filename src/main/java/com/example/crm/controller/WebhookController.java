@@ -17,7 +17,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/webhook")
-@CrossOrigin(origins = "https://trythadi-6qt2.onrender.com", allowedHeaders = "*")
+@CrossOrigin(origins = "https://crm-automation-of-trythadi.onrender.com/api/leads", allowedHeaders = "*")
 public class WebhookController {
 
     @Autowired
