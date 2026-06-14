@@ -48,8 +48,7 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/v1/leads/all", "/api/v1/leads/stats").hasAnyRole("ADMIN", "SALES")
 
-                        .requestMatchers("/api/v1/webhook/update-status/**").permitAll()
-                        .requestMatchers("/api/v1/webhook/update-notes/**").permitAll()
+                      
 
                         // Baaki saari requests authenticated honi chahiye
                         .anyRequest().authenticated()
