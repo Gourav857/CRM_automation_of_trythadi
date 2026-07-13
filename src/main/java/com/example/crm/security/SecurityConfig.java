@@ -34,7 +34,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // 1. ✅ YAHAN CORS CONFIGURATION APPLY KI HAI
+                // 1. ✅ CORS CONFIGURATION APPLY KI HAI
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 
                 .csrf(csrf -> csrf.disable())
@@ -44,7 +44,6 @@ public class SecurityConfig {
                         .requestMatchers("/", "/index.html", "/dashboard.html", "/css/**", "/js/**").permitAll()
 
                         // Public Webhook Route & Lead submission routes (Website integration bina token ke chalne ke liye)
-                        // Note: Agar aapka website form data send kar raha hai, toh use permitAll hona chahiye
                         .requestMatchers("/api/v1/webhook/new-lead", "/api/v1/leads/submit", "/api/v1/leads/create").permitAll()
 
                         // Auth Routes: Login aur Register ke liye public access
@@ -66,21 +65,24 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // 2. ✅ CORS BEAN: Jo browser ko batayega ki frontend domain trusted hai
+    // 2. ✅ CORS BEAN: Dono Render URLs ko bina aakhiri slash (/) ke allow kiya hai
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Apne Frontend Domain ko explicitly allow karein
-        configuration.setAllowedOrigins(List.of("https://trythadi-85fr.onrender.com/")); 
+        // Dono domains bina aakhiri '/' ke add kiye hain taaki preflight fail na ho
+        configuration.setAllowedOrigins(List.of(
+            "https://crm-automation-of-trythadi-syk1.onrender.com",
+            "https://trythadi-85fr.onrender.com"
+        )); 
         
-        // Sabhi Methods ko allow karein (Aksar preflight OPTIONS method hi fail hota hai)
+        // Sabhi Methods ko allow karne ke liye
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         
-        // Sabhi Headers ko allow karein (Jaise Authorization, Content-Type)
+        // Sabhi Headers ko allow karne ke liye
         configuration.setAllowedHeaders(List.of("*"));
         
-        // Credentials (Cookies, Auth Headers) allow karne ke liye
+        // Credentials allow karne ke liye
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
