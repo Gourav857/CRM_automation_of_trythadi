@@ -72,7 +72,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         
         // Apne Frontend Domain ko explicitly allow karein
-        configuration.setAllowedOrigins(List.of("https://trythadi-1.onrender.com")); 
+        configuration.setAllowedOrigins(List.of("https://crm-automation-of-trythadi-syk1.onrender.com")); 
         
         // Sabhi Methods ko allow karein (Aksar preflight OPTIONS method hi fail hota hai)
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
