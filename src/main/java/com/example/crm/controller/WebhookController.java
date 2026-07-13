@@ -13,11 +13,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api")
-@CrossOrigin(origins = "https://trythadi-85fr.onrender.com")
-public class MyController {
-    // Aapke endpoints
-}
+@RequestMapping("/api/v1/webhook")
+// ✅ Sahi Frontend URL explicitly allow kar diya hai bina aakhiri slash ke
+@CrossOrigin(origins = "https://trythadi-85fr.onrender.com", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS})
 public class WebhookController {
 
     @Autowired
