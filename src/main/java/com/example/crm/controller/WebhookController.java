@@ -14,7 +14,16 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/webhook")
-@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS})
+Tarika 1: Controller Level par (@CrossOrigin use karke)
+Agar aap kisi specific Controller par allow karna chahte hain, toh uske upar apne frontend ka URL daal dein:
+
+Java
+@RestController
+@RequestMapping("/api")
+@CrossOrigin(origins = "https://trythadi-85fr.onrender.com")
+public class MyController {
+    // Aapke endpoints
+}
 public class WebhookController {
 
     @Autowired
